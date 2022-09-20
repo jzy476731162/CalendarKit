@@ -18,6 +18,11 @@ public struct CalendarStyle {
   public init() {}
 }
 
+public struct DayValidArea {
+    public var startDate = Date.init(timeIntervalSince1970: 1262275200)
+    public var endDate = Date()
+}
+
 public struct DayHeaderStyle {
   public var daySymbols = DaySymbolsStyle()
   public var daySelector = DaySelectorStyle()
@@ -41,6 +46,9 @@ public struct DaySelectorStyle {
     
   public var font = UIFont.systemFont(ofSize: 18)
   public var todayFont = UIFont.boldSystemFont(ofSize: 18)
+    
+  public var validDays = DayValidArea()
+  public var invalidTextColor = SystemColors.label
   
   public init() {}
 }

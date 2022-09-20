@@ -13,7 +13,9 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
     }
     didSet {
       state?.subscribe(client: self)
-      swipeLabelView.state = state
+        if showSwipeLabelView {
+            swipeLabelView.state = state
+        }
     }
   }
 
@@ -22,6 +24,9 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
   private var daySymbolsViewHeight: CGFloat = 20
   private var pagingScrollViewHeight: CGFloat = 40
   private var swipeLabelViewHeight: CGFloat = 20
+    
+  public var showSwipeLabelView: Bool = true
+  private var daySymbolTopPadding:CGFloat = 10
 
   private let daySymbolsView: DaySymbolsView
   private var pagingViewController = UIPageViewController(transitionStyle: .scroll,
@@ -104,12 +109,21 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
 
   override public func layoutSubviews() {
     super.layoutSubviews()
-    daySymbolsView.frame = CGRect(origin: .zero,
-                                  size: CGSize(width: bounds.width, height: daySymbolsViewHeight))
-    pagingViewController.view?.frame = CGRect(origin: CGPoint(x: 0, y: daySymbolsViewHeight),
-                                              size: CGSize(width: bounds.width, height: pagingScrollViewHeight))
-    swipeLabelView.frame = CGRect(origin: CGPoint(x: 0, y: bounds.height - 10 - swipeLabelViewHeight),
-                                  size: CGSize(width: bounds.width, height: swipeLabelViewHeight))
+      if showSwipeLabelView {
+          daySymbolsView.frame = CGRect(origin: .zero,
+                                        size: CGSize(width: bounds.width, height: daySymbolsViewHeight))
+          pagingViewController.view?.frame = CGRect(origin: CGPoint(x: 0, y: daySymbolsViewHeight),
+                                                    size: CGSize(width: bounds.width, height: pagingScrollViewHeight))
+          swipeLabelView.frame = CGRect(origin: CGPoint(x: 0, y: bounds.height - 10 - swipeLabelViewHeight),
+                                        size: CGSize(width: bounds.width, height: swipeLabelViewHeight))
+      }else {
+          daySymbolsView.frame = CGRect(origin: .init(x: 0, y: daySymbolTopPadding),
+                                        size: CGSize(width: bounds.width, height: daySymbolsViewHeight))
+          pagingViewController.view?.frame = CGRect(origin: CGPoint(x: 0, y: daySymbolTopPadding + daySymbolsViewHeight),
+                                                    size: CGSize(width: bounds.width, height: pagingScrollViewHeight))
+          swipeLabelView.frame = CGRect(origin: CGPoint(x: 0, y: bounds.height - 10 - swipeLabelViewHeight),
+                                        size: CGSize(width: bounds.width, height: swipeLabelViewHeight))
+      }
     
     let separatorHeight = 1 / UIScreen.main.scale
     separator.frame = CGRect(origin: CGPoint(x: 0, y: bounds.height - separatorHeight),
@@ -169,6 +183,10 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
   public func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
     if let selector = viewController as? DaySelectorController {
       let previousDate = calendar.date(byAdding: .weekOfYear, value: -1, to: selector.startDate)!
+        let smallDateGap = calendar.dateComponents([.day], from: previousDate, to: style.daySelector.validDays.startDate).day!
+        if (previousDate <= style.daySelector.validDays.startDate && smallDateGap > daysInWeek) || previousDate > style.daySelector.validDays.endDate {
+        return nil
+      }
       return makeSelectorController(startDate: previousDate)
     }
     return nil
@@ -177,6 +195,9 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
   public func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
     if let selector = viewController as? DaySelectorController {
       let nextDate = calendar.date(byAdding: .weekOfYear, value: 1, to: selector.startDate)!
+      if nextDate < style.daySelector.validDays.startDate || nextDate > style.daySelector.validDays.endDate {
+        return nil
+      }
       return makeSelectorController(startDate: nextDate)
     }
     return nil
@@ -187,6 +208,23 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
   public func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
     guard completed else {return}
     if let selector = pageViewController.viewControllers?.first as? DaySelectorController {
+        //如果超过界限了手动更改
+        let destinationDate = calendar.date(byAdding: .weekday, value: currentWeekdayIndex, to: selector.startDate)!
+        let endDate = style.daySelector.validDays.endDate
+        let startDate = style.daySelector.validDays.startDate
+        if destinationDate > endDate {
+            let centerView = pagingViewController.viewControllers![0] as! DaySelectorController
+            let start = centerView.startDate.dateOnly(calendar: calendar)
+
+            let daysFrom = calendar.dateComponents([.day], from: start, to: endDate).day!
+            currentWeekdayIndex = daysFrom % daysInWeek
+        }else if destinationDate <= startDate {
+            let centerView = pagingViewController.viewControllers![0] as! DaySelectorController
+            let start = centerView.startDate.dateOnly(calendar: calendar)
+
+            let daysFrom = calendar.dateComponents([.day], from: start, to: startDate).day!
+            currentWeekdayIndex = abs(daysInWeek + daysFrom % daysInWeek) % daysInWeek
+        }
       selector.selectedIndex = currentWeekdayIndex
       if let selectedDate = selector.selectedDate {
         state?.client(client: self, didMoveTo: selectedDate)

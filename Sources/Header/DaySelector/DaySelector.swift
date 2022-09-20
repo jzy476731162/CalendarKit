@@ -4,6 +4,7 @@ public protocol DaySelectorItemProtocol: AnyObject {
   var date: Date {get set}
   var selected: Bool {get set}
   var calendar: Calendar {get set}
+  var selectable: Bool {get set}
   func updateStyle(_ newStyle: DaySelectorStyle)
 }
 
@@ -106,6 +107,7 @@ public final class DaySelector: UIView {
   private func configure() {
     for (increment, label) in items.enumerated() {
       label.date = calendar.date(byAdding: .day, value: increment, to: startDate)!
+      label.selectable = (label.date <= style.validDays.endDate && label.date >= style.validDays.startDate)
     }
   }
 
@@ -157,7 +159,7 @@ public final class DaySelector: UIView {
   }
 
   @objc private func dateLabelDidTap(_ sender: UITapGestureRecognizer) {
-    if let item = sender.view as? DaySelectorItemProtocol {
+      if let item = sender.view as? DaySelectorItemProtocol, item.date >= style.validDays.startDate, item.date < style.validDays.endDate {
       delegate?.dateSelectorDidSelectDate(item.date)
     }
   }

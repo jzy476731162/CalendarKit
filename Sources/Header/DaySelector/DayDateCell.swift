@@ -1,6 +1,12 @@
 import UIKit
 
 public final class DayDateCell: UIView, DaySelectorItemProtocol {
+    public var selectable: Bool = true {
+      didSet {
+          dateLabel.selectable = selectable
+          updateState()
+      }
+  }
 
   private let dateLabel = DateLabel()
   private let dayLabel = UILabel()

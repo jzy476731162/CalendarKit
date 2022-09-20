@@ -1,6 +1,12 @@
 import UIKit
 
 public final class DateLabel: UILabel, DaySelectorItemProtocol {
+    public var selectable: Bool = true {
+      didSet {
+          updateState()
+      }
+    }
+    
   public var calendar = Calendar.autoupdatingCurrent {
     didSet {
       updateState()
@@ -54,16 +60,20 @@ public final class DateLabel: UILabel, DaySelectorItemProtocol {
   func updateState() {
     text = String(component(component: .day, from: date))
     let today = isToday
-    if selected {
-      font = style.todayFont
-      textColor = today ? style.todayActiveTextColor : style.activeTextColor
-      backgroundColor = today ? style.todayActiveBackgroundColor : style.selectedBackgroundColor
-    } else {
-      let notTodayColor = isAWeekend(date: date) ? style.weekendTextColor : style.inactiveTextColor
-      font = style.font
-      textColor = today ? style.todayInactiveTextColor : notTodayColor
-      backgroundColor = style.inactiveBackgroundColor
-    }
+      if selectable == false {
+        font = style.font
+        textColor = style.invalidTextColor
+        backgroundColor = style.inactiveBackgroundColor
+      }else if selected {
+        font = style.todayFont
+        textColor = today ? style.todayActiveTextColor : style.activeTextColor
+        backgroundColor = today ? style.todayActiveBackgroundColor : style.selectedBackgroundColor
+      } else {
+        let notTodayColor = isAWeekend(date: date) ? style.weekendTextColor : style.inactiveTextColor
+        font = style.font
+        textColor = today ? style.todayInactiveTextColor : notTodayColor
+        backgroundColor = style.inactiveBackgroundColor
+      }
   }
 
   private func component(component: Calendar.Component, from date: Date) -> Int {
